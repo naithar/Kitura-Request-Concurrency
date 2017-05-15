@@ -1,15 +1,26 @@
 import XCTest
-@testable import Kitura_Request_Concurrency
+import SwiftyJSON
+import KituraRequest
+@testable import KituraRequestConcurrency
 
-class Kitura_Request_ConcurrencyTests: XCTestCase {
-    func testExample() {
-        // This is an example of a functional test case.
-        // Use XCTAssert and related functions to verify your tests produce the correct results.
-        XCTAssertEqual(Kitura_Request_Concurrency().text, "Hello, World!")
+class KituraRequestConcurrencyTests: XCTestCase {
+    
+    func testRequest() {
+        
+        let e = self.expectation(description: "ex")
+        KituraRequest
+            .request(.get, "http://httpbin.org/ip")
+            .response(with: String.self)
+            .then { print("\($0)") }
+            .always { _ in e.fulfill() }
+        
+        self.waitForExpectations(timeout: 10) { error in
+            XCTAssertNil(error)
+        }
     }
 
 
     static var allTests = [
-        ("testExample", testExample),
+        ("testRequest", testRequest),
     ]
 }

@@ -1,6 +1,6 @@
 import XCTest
-@testable import Kitura_Request_ConcurrencyTests
+@testable import KituraRequestConcurrencyTests
 
 XCTMain([
-    testCase(Kitura_Request_ConcurrencyTests.allTests),
+    testCase(KituraRequestConcurrencyTests.allTests),
 ])
