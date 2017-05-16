@@ -25,8 +25,7 @@ class KituraRequestConcurrencyTests: XCTestCase {
         }
     }
     
-    func testCombine() {
-        
+    func testCombine() {        
         let e1 = self.expectation(description: "e1")
         let e2 = self.expectation(description: "e2")
         
@@ -56,10 +55,30 @@ class KituraRequestConcurrencyTests: XCTestCase {
             
         }
     }
+    
+    func testTask() {
+        
+        let e = self.expectation(description: "e")
+        
+        var value: String?
+        
+        KituraRequest
+            .start(.get, "http://httpbin.org/get")
+            .response(with: JSON.self)
+            .then { $0["url"].string }
+            .then { value = $0; return }
+            .always { _ in e.fulfill() }
+        
+        self.waitForExpectations(timeout: 10) { error in
+            XCTAssertNil(error)
+            XCTAssertEqual("http://httpbin.org/get", value)
+        }
+    }
 
 
     static var allTests = [
         ("testRequest", testRequest),
         ("testCombine", testCombine),
+        ("testTask", testTask),
     ]
 }

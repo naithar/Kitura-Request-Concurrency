@@ -9,26 +9,26 @@
 import Foundation
 import SwiftyJSON
 
-enum ConvertationError: Swift.Error {
+public enum ConvertationError: Swift.Error {
     
     case unableToConvert
 }
 
-protocol RequestConvertible {
+public protocol RequestConvertible {
     
     static func convert(_ data: Data) throws -> Self
 }
 
 extension Data: RequestConvertible {
     
-    static func convert(_ data: Data) throws -> Data {
+    public static func convert(_ data: Data) throws -> Data {
         return data
     }
 }
 
 extension String: RequestConvertible {
     
-    static func convert(_ data: Data) throws -> String {
+    public static func convert(_ data: Data) throws -> String {
         guard let string = String(data: data, encoding: .utf8) else {
             throw ConvertationError.unableToConvert
         }
@@ -39,7 +39,7 @@ extension String: RequestConvertible {
 
 extension JSON: RequestConvertible {
     
-    static func convert(_ data: Data) throws -> JSON {
+    public static func convert(_ data: Data) throws -> JSON {
         let json = JSON.init(data: data)
         return json
     }
