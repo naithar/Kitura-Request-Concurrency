@@ -1,5 +1,5 @@
-import KituraRequest
-import Concurrency
+@_exported import KituraRequest
+@_exported import Concurrency
 import Foundation
 import Dispatch
 
