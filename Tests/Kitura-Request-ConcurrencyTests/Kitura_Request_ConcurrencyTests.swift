@@ -14,6 +14,7 @@ class KituraRequestConcurrencyTests: XCTestCase {
         KituraRequest
             .request(.get, "http://httpbin.org/ip")
             .response(with: JSON.self)
+            .validate()
             .then { $0["origin"].string }
             .then { value = $0 ?? "" }
             .always { _ in e.fulfill() }
@@ -32,11 +33,13 @@ class KituraRequestConcurrencyTests: XCTestCase {
         let ip = KituraRequest
             .request(.get, "http://httpbin.org/ip")
             .response(with: JSON.self)
+            .validate()
             .then { $0["origin"].string }
             .always { _ in e1.fulfill() }
         
         let url = KituraRequest.request(.get, "http://httpbin.org/get")
             .response(with: JSON.self)
+            .validate()
             .then { $0["url"].string }
             .always { _ in e2.fulfill() }
         
@@ -65,6 +68,7 @@ class KituraRequestConcurrencyTests: XCTestCase {
         KituraRequest
             .start(.get, "http://httpbin.org/get")
             .response(with: JSON.self)
+            .validate()
             .then { $0["url"].string }
             .then { value = $0; return }
             .always { _ in e.fulfill() }

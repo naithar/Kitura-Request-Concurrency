@@ -2,6 +2,7 @@
 @_exported import Concurrency
 import KituraNet
 
+
 public extension KituraRequest {
     
     public static func start(in queue: DispatchQueue = .request,
@@ -22,8 +23,8 @@ public extension KituraRequest {
 public extension Request {
     
     public func response<T: RequestConvertible>(in queue: DispatchQueue = .request, with: T.Type)
-        -> Task<(ClientRequest?, ClientResponse?, T)> {
-            let task = Task<(ClientRequest?, ClientResponse?, T)>(in: queue) { task in
+        -> Task<RequestResult<T>> {
+            let task = Task<RequestResult<T>>(in: queue) { task in
                 self.response { request, response, data, error in
                     guard error == nil, let data = data else {
                         task.throw(error ?? RequestError.unexpectedResponse)
@@ -32,7 +33,8 @@ public extension Request {
                     
                     do {
                         let value = try T.convert(data)
-                        task.send((request, response, value))
+                        let result = RequestResult(request: request, response: response, value: value)
+                        task.send(result)
                     } catch {
                         task.throw(error)
                     }
@@ -48,8 +50,8 @@ public extension Request {
 public extension Task where Element == Request {
     
     public func response<T: RequestConvertible>(in queue: DispatchQueue = .request, with: T.Type)
-        -> Task<(ClientRequest?, ClientResponse?, T)> {
-            let newTask = Task<(ClientRequest?, ClientResponse?, T)>(in: queue)
+        -> Task<RequestResult<T>> {
+            let newTask = Task<RequestResult<T>>(in: queue)
             
             self
                 .done(in: queue) { request in
@@ -62,7 +64,8 @@ public extension Task where Element == Request {
                         
                         do {
                             let value = try T.convert(data)
-                            newTask.send((request, response, value))
+                            let result = RequestResult(request: request, response: response, value: value)
+                            newTask.send(result)
                         } catch {
                             newTask.throw(error)
                         }
@@ -76,12 +79,14 @@ public extension Task where Element == Request {
     }
 }
 
-public extension Task where Element == (ClientRequest?, ClientResponse?, T: RequestConvertible) {
+public extension Task where Element: RequestResultable {
     
-    typealias RequestType = T
+    typealias RequestType = Element.Element
+    
     public func validate(in queue: DispatchQueue = .request,
-                         action: ((ClientRequest?, ClientResponse?) throws -> Bool)? = nil) -> Task<RequestType> {
+                         action: ((RequestResult<RequestType>) throws -> Bool)? = nil) -> Task<RequestType> {
         let task = Task<RequestType>()
+        
         
         func set(with value: RequestConvertible) {
             if let value = value as? RequestType {
@@ -92,15 +97,20 @@ public extension Task where Element == (ClientRequest?, ClientResponse?, T: Requ
         }
         
         self
-            .done { (request, response, value) in
+            .done { response in
+                guard let response = response as? RequestResult<RequestType> else {
+                    task.throw(RequestError.invalid)
+                    return
+                }
+                
                 guard let action = action else {
-                    set(with: value)
+                    set(with: response.value)
                     return
                 }
                 
                 do {
-                    if try action(request, response) {
-                        set(with: value)
+                    if try action(response) {
+                        set(with: response.value)
                     } else {
                         task.throw(RequestError.invalid)
                     }

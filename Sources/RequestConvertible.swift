@@ -7,6 +7,7 @@
 //
 
 import Foundation
+import KituraNet
 import SwiftyJSON
 
 public enum ConvertationError: Swift.Error {
@@ -17,6 +18,21 @@ public enum ConvertationError: Swift.Error {
 public protocol RequestConvertible {
     
     static func convert(_ data: Data) throws -> Self
+}
+
+public protocol RequestResultable {
+    
+    associatedtype Element: RequestConvertible
+}
+
+
+public struct RequestResult<T: RequestConvertible>: RequestResultable {
+    
+    public typealias Element = T
+    
+    public weak var request: ClientRequest?
+    public weak var response: ClientResponse?
+    public var value: Element
 }
 
 extension Data: RequestConvertible {
