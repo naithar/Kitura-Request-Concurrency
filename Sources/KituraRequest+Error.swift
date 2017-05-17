@@ -9,4 +9,5 @@
 public enum RequestError: Swift.Error {
     
     case unexpectedResponse
+    case invalid
 }

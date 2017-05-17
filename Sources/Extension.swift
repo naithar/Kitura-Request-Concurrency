@@ -1,5 +1,6 @@
 @_exported import KituraRequest
 @_exported import Concurrency
+import KituraNet
 
 public extension KituraRequest {
     
@@ -20,54 +21,94 @@ public extension KituraRequest {
 
 public extension Request {
     
-    public func response<T: RequestConvertible>(in queue: DispatchQueue = .request, with: T.Type) -> Task<T> {
-        let task = Task<T>(in: queue) { task in
-            self.response { request, response, data, error in
-                guard error == nil, let data = data else {
-                    task.throw(error ?? RequestError.unexpectedResponse)
-                    return
+    public func response<T: RequestConvertible>(in queue: DispatchQueue = .request, with: T.Type)
+        -> Task<(ClientRequest?, ClientResponse?, T)> {
+            let task = Task<(ClientRequest?, ClientResponse?, T)>(in: queue) { task in
+                self.response { request, response, data, error in
+                    guard error == nil, let data = data else {
+                        task.throw(error ?? RequestError.unexpectedResponse)
+                        return
+                    }
+                    
+                    do {
+                        let value = try T.convert(data)
+                        task.send((request, response, value))
+                    } catch {
+                        task.throw(error)
+                    }
+                    
                 }
-                
-                do {
-                    let value = try T.convert(data)
-                    task.send(value)
-                } catch {
-                    task.throw(error)
-                }
-                
             }
-        }
-        
-        return task
+            
+            return task
     }
 }
 
 
 public extension Task where Element == Request {
     
-    public func response<T: RequestConvertible>(in queue: DispatchQueue = .request, with: T.Type) -> Task<T> {
-        let newTask = Task<T>(in: queue)
+    public func response<T: RequestConvertible>(in queue: DispatchQueue = .request, with: T.Type)
+        -> Task<(ClientRequest?, ClientResponse?, T)> {
+            let newTask = Task<(ClientRequest?, ClientResponse?, T)>(in: queue)
+            
+            self
+                .done(in: queue) { request in
+                    request.response { request, response, data, error in
+                        
+                        guard error == nil, let data = data else {
+                            newTask.throw(error ?? RequestError.unexpectedResponse)
+                            return
+                        }
+                        
+                        do {
+                            let value = try T.convert(data)
+                            newTask.send((request, response, value))
+                        } catch {
+                            newTask.throw(error)
+                        }
+                        
+                    }
+                }.catch(in: queue) {
+                    newTask.throw($0)
+            }
+            
+            return newTask
+    }
+}
+
+public extension Task where Element == (ClientRequest?, ClientResponse?, T: RequestConvertible) {
+    
+    typealias RequestType = T
+    public func validate(in queue: DispatchQueue = .request,
+                         action: ((ClientRequest?, ClientResponse?) throws -> Bool)? = nil) -> Task<RequestType> {
+        let task = Task<RequestType>()
         
-        self
-            .done(in: queue) { request in
-                request.response { request, response, data, error in
-                    guard error == nil, let data = data else {
-                        newTask.throw(error ?? RequestError.unexpectedResponse)
-                        return
-                    }
-                    
-                    do {
-                        let value = try T.convert(data)
-                        newTask.send(value)
-                    } catch {
-                        newTask.throw(error)
-                    }
-                    
-                }
-            }.catch(in: queue) {
-                newTask.throw($0)
+        func set(with value: RequestConvertible) {
+            if let value = value as? RequestType {
+                task.send(value)
+            } else {
+                task.throw(RequestError.unexpectedResponse)
+            }
         }
         
-        return newTask
+        self
+            .done { (request, response, value) in
+                guard let action = action else {
+                    set(with: value)
+                    return
+                }
+                
+                do {
+                    if try action(request, response) {
+                        set(with: value)
+                    } else {
+                        task.throw(RequestError.invalid)
+                    }
+                } catch {
+                    task.throw(error)
+                }
+            }.catch { task.throw($0) }
+        
+        return task
     }
 }
