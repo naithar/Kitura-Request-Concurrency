@@ -3,13 +3,13 @@
 
 public extension KituraRequest {
     
-    public static func start(on queue: DispatchQueue = .request,
+    public static func start(in queue: DispatchQueue = .request,
                              _ method: Request.Method,
                              _ URL: String,
                              parameters: Request.Parameters? = nil,
                              encoding: Encoding = URLEncoding.default,
                              headers: [String: String]? = nil) -> Task<Request> {
-        return Task<Request>(on: queue,
+        return Task<Request>(in: queue,
                              value: self
                                 .request(method, URL,
                                          parameters: parameters,
@@ -20,8 +20,8 @@ public extension KituraRequest {
 
 public extension Request {
     
-    public func response<T: RequestConvertible>(on queue: DispatchQueue = .request, with: T.Type) -> Task<T> {
-        let task = Task<T>(on: queue) { task in
+    public func response<T: RequestConvertible>(in queue: DispatchQueue = .request, with: T.Type) -> Task<T> {
+        let task = Task<T>(in: queue) { task in
             self.response { request, response, data, error in
                 guard error == nil, let data = data else {
                     task.throw(error ?? RequestError.unexpectedResponse)
@@ -45,11 +45,11 @@ public extension Request {
 
 public extension Task where Element == Request {
     
-    public func response<T: RequestConvertible>(on queue: DispatchQueue = .request, with: T.Type) -> Task<T> {
-        let newTask = Task<T>(on: queue)
+    public func response<T: RequestConvertible>(in queue: DispatchQueue = .request, with: T.Type) -> Task<T> {
+        let newTask = Task<T>(in: queue)
         
         self
-            .done(on: queue) { request in
+            .done(in: queue) { request in
                 request.response { request, response, data, error in
                     guard error == nil, let data = data else {
                         newTask.throw(error ?? RequestError.unexpectedResponse)
@@ -64,7 +64,7 @@ public extension Task where Element == Request {
                     }
                     
                 }
-            }.catch(on: queue) {
+            }.catch(in: queue) {
                 newTask.throw($0)
         }
         

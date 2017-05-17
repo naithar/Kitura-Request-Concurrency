@@ -11,7 +11,7 @@
       "package": "Concurrency",
       "reason": null,
       "repositoryURL": "https://github.com/naithar/Concurrency.git",
-      "version": "0.1.7"
+      "version": "0.1.10"
     },
     {
       "package": "Kitura-net",
@@ -23,7 +23,7 @@
       "package": "KituraRequest",
       "reason": null,
       "repositoryURL": "https://github.com/IBM-Swift/Kitura-Request.git",
-      "version": "0.8.0"
+      "version": "0.8.1"
     },
     {
       "package": "LoggerAPI",
