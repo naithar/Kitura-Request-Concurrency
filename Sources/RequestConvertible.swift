@@ -30,8 +30,8 @@ public struct RequestResult<T: RequestConvertible>: RequestResultable {
     
     public typealias Element = T
     
-    public weak var request: ClientRequest?
-    public weak var response: ClientResponse?
+    public var request: ClientRequest?
+    public var response: ClientResponse?
     public var value: Element
 }
 
