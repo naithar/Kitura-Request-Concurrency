@@ -84,7 +84,7 @@ public extension Task where Element: RequestResultable {
     typealias RequestType = Element.Element
     
     public func validate(in queue: DispatchQueue = .request,
-                         action: ((RequestResult<RequestType>) throws -> Bool)? = nil) -> Task<RequestType> {
+                         _ validation: ((RequestResult<RequestType>) throws -> Bool)? = nil) -> Task<RequestType> {
         let task = Task<RequestType>()
         
         
@@ -103,13 +103,13 @@ public extension Task where Element: RequestResultable {
                     return
                 }
                 
-                guard let action = action else {
+                guard let validation = validation else {
                     set(with: response.value)
                     return
                 }
                 
                 do {
-                    if try action(response) {
+                    if try validation(response) {
                         set(with: response.value)
                     } else {
                         task.throw(RequestError.invalid)
